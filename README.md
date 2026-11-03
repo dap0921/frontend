@@ -8,6 +8,49 @@ Copy `.env.example` to `.env.local` and set `REACT_APP_API_URL` to your API serv
 
 To use MongoDB Atlas, configure the **backend** with the Atlas connection string (for example, in the backend's server-side `MONGODB_URI` environment variable), and set the Atlas database name there. Add the backend server's network/IP access and database user in Atlas. This repository contains only the React frontend, so the backend must be updated and deployed separately.
 
+## Razorpay payments for shared expenses
+
+The shared-expense page offers a **Pay remaining** button for a member's
+outstanding share. This frontend opens Razorpay Checkout, but the backend must
+create the order, verify the payment, and record the settlement. Do not put the
+Razorpay Key Secret in this React app or any `REACT_APP_*` variable.
+
+To enable payments:
+
+1. Create/activate a Razorpay account and enable **Razorpay Route** if payments
+   must be transferred directly to each expense giver. Complete Razorpay's
+   required account and linked-account onboarding. Store each giver's verified
+   Route linked-account ID on the backend; a name or email alone cannot receive
+   a Route transfer.
+2. Add these server-side environment variables to the backend (use test keys
+   while testing):
+   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_SECRET`
+3. Implement these authenticated backend endpoints under `/api/shared`:
+   - `POST /expenses/:expenseId/payments/order`: determine the signed-in
+     member's remaining split amount from the database (never trust an amount
+     supplied by the browser), create an INR order in paise, and return
+     `{ "data": { "keyId": "...", "orderId": "...", "amount": 12345, "currency": "INR" } }`.
+     `amount` must be the exact remaining balance in paise. For direct payment
+     to the giver, create the order with a Razorpay Route transfer to the
+     expense payer's linked account for that amount.
+   - `POST /expenses/:expenseId/payments/verify`: accept
+     `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature`.
+     Verify the signature on the server with `RAZORPAY_KEY_SECRET`, confirm
+     that the order belongs to this user and expense and that the payment was
+     captured, then record the verified amount against that user's split.
+     Make verification and settlement idempotent; never mark a share settled
+     based only on the browser callback.
+4. Configure `REACT_APP_API_URL` in the frontend to point to this backend,
+   restart/rebuild the frontend, and test with Razorpay test-mode keys. Switch
+   to live keys only after the backend verification and Route transfer have
+   been tested.
+
+This repository contains only the frontend, so the two backend endpoints and
+the payer's linked-account setup must be implemented in your API server before
+the button can complete a payment. The existing **Record repayment** option is
+still available for repayments made outside the app.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

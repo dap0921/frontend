@@ -6,6 +6,36 @@ import { useNavigate } from "react-router-dom";
 const API_URL = `${
   process.env.REACT_APP_API_URL || "http://localhost:5000"
 }/api/shared`;
+const RAZORPAY_CHECKOUT_URL =
+  "https://checkout.razorpay.com/v1/checkout.js";
+
+let razorpayCheckoutPromise;
+
+const loadRazorpayCheckout = () => {
+  if (window.Razorpay) return Promise.resolve();
+  if (razorpayCheckoutPromise) return razorpayCheckoutPromise;
+
+  razorpayCheckoutPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = RAZORPAY_CHECKOUT_URL;
+    script.async = true;
+    script.onload = () => {
+      if (window.Razorpay) {
+        resolve();
+      } else {
+        razorpayCheckoutPromise = null;
+        reject(new Error("Razorpay Checkout could not be loaded."));
+      }
+    };
+    script.onerror = () => {
+      razorpayCheckoutPromise = null;
+      reject(new Error("Could not load Razorpay Checkout. Check your connection."));
+    };
+    document.body.appendChild(script);
+  });
+
+  return razorpayCheckoutPromise;
+};
 
 const CATEGORIES = [
   "Food",
@@ -68,6 +98,7 @@ const SharedExpenses = () => {
 
   const [settlementAmounts, setSettlementAmounts] = useState({});
   const [settlingExpense, setSettlingExpense] = useState({});
+  const [payingExpense, setPayingExpense] = useState({});
   const [settlementMessage, setSettlementMessage] = useState({});
 
   
@@ -452,6 +483,140 @@ const SharedExpenses = () => {
       setSettlingExpense((prev) => ({
         ...prev,
         [expenseId]: false,
+      }));
+    }
+  };
+
+  const payRemainingShare = async (expense, remainingCents) => {
+    const expenseId = expense._id;
+    const config = getAuthConfig();
+    if (!config) return;
+
+    setPayingExpense((prev) => ({ ...prev, [expenseId]: true }));
+    setSettlementMessage((prev) => ({ ...prev, [expenseId]: null }));
+
+    try {
+      await loadRazorpayCheckout();
+
+      const orderResponse = await axios.post(
+        `${API_URL}/expenses/${expenseId}/payments/order`,
+        {},
+        config
+      );
+      const order = orderResponse.data?.data || orderResponse.data;
+
+      if (
+        !order?.keyId ||
+        !order?.orderId ||
+        !Number.isSafeInteger(Number(order.amount)) ||
+        Number(order.amount) <= 0
+      ) {
+        throw new Error("The server returned an invalid Razorpay order.");
+      }
+
+      if (Number(order.amount) !== remainingCents) {
+        setSettlementMessage((prev) => ({
+          ...prev,
+          [expenseId]: {
+            type: "error",
+            text: "Your outstanding amount changed. Refresh the expenses before paying.",
+          },
+        }));
+        await loadExpenses();
+        setPayingExpense((prev) => ({ ...prev, [expenseId]: false }));
+        return;
+      }
+
+      let paymentFlowHandled = false;
+      const checkout = new window.Razorpay({
+        key: order.keyId,
+        amount: Number(order.amount),
+        currency: order.currency || "INR",
+        name: "ExpenseTracker",
+        description: `Repayment for ${expense.title || "shared expense"}`,
+        order_id: order.orderId,
+        prefill: order.prefill || {},
+        notes: { expenseId },
+        theme: { color: "#34d399" },
+        modal: {
+          ondismiss: () => {
+            if (paymentFlowHandled) return;
+
+            setPayingExpense((prev) => ({ ...prev, [expenseId]: false }));
+            setSettlementMessage((prev) => ({
+              ...prev,
+              [expenseId]: {
+                type: "error",
+                text: "Payment cancelled. No repayment was recorded.",
+              },
+            }));
+          },
+        },
+        handler: async (payment) => {
+          paymentFlowHandled = true;
+          try {
+            const response = await axios.post(
+              `${API_URL}/expenses/${expenseId}/payments/verify`,
+              {
+                razorpay_payment_id: payment.razorpay_payment_id,
+                razorpay_order_id: payment.razorpay_order_id,
+                razorpay_signature: payment.razorpay_signature,
+              },
+              config
+            );
+
+            setSettlementMessage((prev) => ({
+              ...prev,
+              [expenseId]: {
+                type: "success",
+                text:
+                  response.data?.message ||
+                  "Payment verified and your share was settled.",
+              },
+            }));
+            setSettlementAmounts((prev) => ({ ...prev, [expenseId]: "" }));
+            await loadExpenses();
+          } catch (err) {
+            setSettlementMessage((prev) => ({
+              ...prev,
+              [expenseId]: {
+                type: "error",
+                text:
+                  err.response?.data?.message ||
+                  "Payment was submitted, but could not be verified. Refresh or contact support before trying again.",
+              },
+            }));
+          } finally {
+            setPayingExpense((prev) => ({ ...prev, [expenseId]: false }));
+          }
+        },
+      });
+
+      checkout.on("payment.failed", (event) => {
+        paymentFlowHandled = true;
+        setPayingExpense((prev) => ({ ...prev, [expenseId]: false }));
+        setSettlementMessage((prev) => ({
+          ...prev,
+          [expenseId]: {
+            type: "error",
+            text:
+              event.error?.description ||
+              "Razorpay could not complete the payment.",
+          },
+        }));
+      });
+      checkout.open();
+    } catch (err) {
+      setPayingExpense((prev) => ({ ...prev, [expenseId]: false }));
+      setSettlementMessage((prev) => ({
+        ...prev,
+        [expenseId]: {
+          type: "error",
+          text:
+            err.response?.data?.message ||
+            err.message ||
+            "Could not start the Razorpay payment. Please try again.",
+        },
       }));
     }
   };
@@ -1320,6 +1485,29 @@ const SharedExpenses = () => {
                           </p>
                         </div>
 
+                        <button
+                          type="button"
+                          onClick={() =>
+                            payRemainingShare(expense, remainingCents)
+                          }
+                          disabled={
+                            !!payingExpense[expense._id] ||
+                            !!settlingExpense[expense._id]
+                          }
+                          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#07100b] transition hover:bg-emerald-300 disabled:cursor-wait disabled:opacity-50"
+                        >
+                          {payingExpense[expense._id] ? (
+                            <>
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#07100b]/30 border-t-[#07100b]" />
+                              Connecting to Razorpay...
+                            </>
+                          ) : (
+                            `Pay remaining ₹${formatMoney(
+                              remainingCents / 100
+                            )} to the giver`
+                          )}
+                        </button>
+
                         <form
                           className="flex flex-col gap-3 sm:flex-row"
                           onSubmit={(e) => {
@@ -1337,6 +1525,7 @@ const SharedExpenses = () => {
                               max={(remainingCents / 100).toFixed(2)}
                               step="0.01"
                               required
+                              disabled={!!payingExpense[expense._id]}
                               value={settlementAmounts[expense._id] || ""}
                               onChange={(e) =>
                                 setSettlementAmounts((prev) => ({
@@ -1351,7 +1540,10 @@ const SharedExpenses = () => {
 
                           <button
                             type="submit"
-                            disabled={!!settlingExpense[expense._id]}
+                            disabled={
+                              !!settlingExpense[expense._id] ||
+                              !!payingExpense[expense._id]
+                            }
                             className="flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#07100b] transition hover:bg-emerald-300 disabled:opacity-50"
                           >
                             {settlingExpense[expense._id] ? (
