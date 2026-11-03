@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -8,9 +8,9 @@ function MonthlyBudget() {
 
   const getCurrentMonth = () => {
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    return `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, '0')}`;
   };
 
   const [month, setMonth] = useState(getCurrentMonth);
@@ -22,7 +22,7 @@ function MonthlyBudget() {
   const [success, setSuccess] = useState('');
 
   // Authentication
-  const getAuthConfig = () => {
+  const getAuthConfig = useCallback(() => {
     const storedUser = localStorage.getItem('user');
 
     if (!storedUser) {
@@ -50,19 +50,18 @@ function MonthlyBudget() {
       navigate('/login');
       return null;
     }
-  };
+  }, [navigate]);
 
   // Fetch monthly budget
-  const fetchBudget = async (selectedMonth) => {
+  const fetchBudget = useCallback(async (selectedMonth) => {
     setLoading(true);
     setError('');
-    setSuccess('');
 
     const config = getAuthConfig();
 
     if (!config) {
       setLoading(false);
-      return;
+      return false;
     }
 
     try {
@@ -77,20 +76,26 @@ function MonthlyBudget() {
       setBudgetInput(
         data?.budgetSet ? String(data.budget) : ''
       );
+
+      return true;
     } catch (err) {
       console.error('Fetch budget error:', err);
+
       setError(
         err.response?.data?.message ||
         'Unable to load monthly budget. Please try again.'
       );
+
+      return false;
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthConfig]);
 
+  // Load budget whenever selected month changes
   useEffect(() => {
     fetchBudget(month);
-  }, [month]);
+  }, [month, fetchBudget]);
 
   // Save or update budget
   const handleSaveBudget = async (event) => {
@@ -100,10 +105,12 @@ function MonthlyBudget() {
 
     if (!Number.isFinite(amount) || amount <= 0) {
       setError('Please enter a budget amount greater than zero.');
+      setSuccess('');
       return;
     }
 
     const config = getAuthConfig();
+
     if (!config) return;
 
     setSaving(true);
@@ -117,10 +124,14 @@ function MonthlyBudget() {
         config
       );
 
-      setSuccess('Monthly budget saved successfully.');
-      await fetchBudget(month);
+      const refreshed = await fetchBudget(month);
+
+      if (refreshed) {
+        setSuccess('Monthly budget saved successfully.');
+      }
     } catch (err) {
       console.error('Save budget error:', err);
+
       setError(
         err.response?.data?.message ||
         'Unable to save budget. Please try again.'
@@ -175,13 +186,16 @@ function MonthlyBudget() {
 
   return (
     <div className="min-h-screen bg-[#080b09] text-white">
+
       {/* HEADER */}
       <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-[#080b09]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400 text-xl font-black text-[#07100b]">
               ₹
             </div>
+
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
                 Personal Finance
@@ -197,16 +211,9 @@ function MonthlyBudget() {
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-gray-300 transition hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-300 sm:px-4"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />
               <path d="m12 19-7-7 7-7" />
             </svg>
@@ -216,6 +223,7 @@ function MonthlyBudget() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+
         {/* INTRODUCTION */}
         <section className="mb-8">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-300">
@@ -238,10 +246,8 @@ function MonthlyBudget() {
         <section className="mb-6 rounded-3xl border border-white/[0.08] bg-[#101713] p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <label
-                htmlFor="budgetMonth"
-                className="mb-2 block text-sm font-semibold text-gray-300"
-              >
+              <label htmlFor="budgetMonth"
+                className="mb-2 block text-sm font-semibold text-gray-300">
                 Select month
               </label>
 
@@ -265,10 +271,8 @@ function MonthlyBudget() {
 
         {/* ERROR MESSAGE */}
         {error && (
-          <div
-            role="alert"
-            className="mb-5 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.07] p-4"
-          >
+          <div role="alert"
+            className="mb-5 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.07] p-4">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-400/10 font-bold text-red-300">
               !
             </span>
@@ -283,10 +287,8 @@ function MonthlyBudget() {
 
         {/* SUCCESS MESSAGE */}
         {success && (
-          <div
-            role="status"
-            className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.07] p-4"
-          >
+          <div role="status"
+            className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.07] p-4">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
               ✓
             </span>
@@ -312,6 +314,7 @@ function MonthlyBudget() {
           <>
             {/* SUMMARY CARDS */}
             <section className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+
               {/* MONTHLY BUDGET */}
               <div className="rounded-3xl border border-white/[0.08] bg-[#101713] p-6 transition hover:border-emerald-400/20">
                 <div className="flex items-start justify-between gap-3">
@@ -324,14 +327,8 @@ function MonthlyBudget() {
                     </p>
                   </div>
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                    <svg
-                      width="23"
-                      height="23"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
+                    <svg width="23" height="23" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="5" width="18" height="14" rx="3" />
                       <path d="M3 10h18" />
                     </svg>
@@ -356,16 +353,9 @@ function MonthlyBudget() {
                     </p>
                   </div>
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-300">
-                    <svg
-                      width="23"
-                      height="23"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg width="23" height="23" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 3v18h18" />
                       <path d="m7 14 4-4 4 4 6-7" />
                     </svg>
@@ -383,13 +373,9 @@ function MonthlyBudget() {
                     <p className="text-sm font-medium text-gray-400">
                       {exceeded ? 'Amount over budget' : 'Remaining balance'}
                     </p>
-                    <p
-                      className={`mt-3 break-words text-2xl font-bold tracking-tight sm:text-3xl ${
-                        exceeded
-                          ? 'text-red-300'
-                          : 'text-emerald-300'
-                      }`}
-                    >
+                    <p className={`mt-3 break-words text-2xl font-bold tracking-tight sm:text-3xl ${
+                      exceeded ? 'text-red-300' : 'text-emerald-300'
+                    }`}>
                       {formatCurrency(
                         exceeded
                           ? Math.abs(Number(budgetData?.remaining) || 0)
@@ -397,23 +383,14 @@ function MonthlyBudget() {
                       )}
                     </p>
                   </div>
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                      exceeded
-                        ? 'bg-red-400/10 text-red-300'
-                        : 'bg-emerald-400/10 text-emerald-300'
-                    }`}
-                  >
-                    <svg
-                      width="23"
-                      height="23"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                    exceeded
+                      ? 'bg-red-400/10 text-red-300'
+                      : 'bg-emerald-400/10 text-emerald-300'
+                  }`}>
+                    <svg width="23" height="23" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round">
                       {exceeded ? (
                         <>
                           <path d="M12 3 22 21H2L12 3z" />
@@ -452,9 +429,7 @@ function MonthlyBudget() {
                   </p>
                 </div>
 
-                <span
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${statusColor}`}
-                >
+                <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${statusColor}`}>
                   {budgetData?.budgetSet ? statusLabel : 'No budget set'}
                 </span>
               </div>
@@ -474,18 +449,14 @@ function MonthlyBudget() {
                 </div>
               </div>
 
-              <div
-                className="h-3 w-full overflow-hidden rounded-full bg-white/[0.06]"
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white/[0.06]"
                 role="progressbar"
                 aria-label="Monthly budget used"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={percentage}
-              >
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${progressColor}`}
-                  style={{ width: `${percentage}%` }}
-                />
+                aria-valuenow={percentage}>
+                <div className={`h-full rounded-full transition-all duration-700 ${progressColor}`}
+                  style={{ width: `${percentage}%` }} />
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -516,45 +487,35 @@ function MonthlyBudget() {
                 </div>
               )}
 
-              {!exceeded &&
-                budgetData?.budgetSet &&
-                percentageUsed >= 80 && (
-                  <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-                      !
-                    </span>
-                    <div>
-                      <p className="font-semibold text-amber-300">
-                        You're approaching your spending limit
-                      </p>
-                      <p className="mt-1 text-sm leading-5 text-gray-400">
-                        Keep an eye on new expenses to stay within your budget.
-                      </p>
-                    </div>
+              {!exceeded && budgetData?.budgetSet && percentageUsed >= 80 && (
+                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
+                    !
+                  </span>
+                  <div>
+                    <p className="font-semibold text-amber-300">
+                      You're approaching your spending limit
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-gray-400">
+                      Keep an eye on new expenses to stay within your budget.
+                    </p>
                   </div>
-                )}
+                </div>
+              )}
             </section>
 
             {/* SET OR UPDATE BUDGET */}
             <section className="rounded-3xl border border-white/[0.08] bg-[#101713] p-6 sm:p-8">
               <div className="mb-7 flex items-start gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                  <svg
-                    width="23"
-                    height="23"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg width="23" height="23" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="1.8"
+                    strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 5v14" />
                     <path d="M5 12h14" />
                     <circle cx="12" cy="12" r="9" />
                   </svg>
                 </div>
-
                 <div>
                   <h2 className="text-xl font-bold text-white">
                     {budgetData?.budgetSet
@@ -565,8 +526,7 @@ function MonthlyBudget() {
                     Choose the maximum amount you plan to spend in{' '}
                     <span className="font-semibold text-emerald-300">
                       {formatMonth(month)}
-                    </span>
-                    .
+                    </span>.
                   </p>
                 </div>
               </div>
@@ -574,10 +534,8 @@ function MonthlyBudget() {
               <form onSubmit={handleSaveBudget}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                   <div className="w-full sm:max-w-md sm:flex-1">
-                    <label
-                      htmlFor="budgetAmount"
-                      className="mb-2 block text-sm font-semibold text-gray-300"
-                    >
+                    <label htmlFor="budgetAmount"
+                      className="mb-2 block text-sm font-semibold text-gray-300">
                       Budget amount (₹)
                     </label>
 
@@ -592,9 +550,7 @@ function MonthlyBudget() {
                         step="0.01"
                         required
                         value={budgetInput}
-                        onChange={(event) =>
-                          setBudgetInput(event.target.value)
-                        }
+                        onChange={(event) => setBudgetInput(event.target.value)}
                         placeholder="e.g. 20000"
                         className="h-14 w-full rounded-xl border border-white/10 bg-[#0b100d] pl-11 pr-4 text-white outline-none transition placeholder:text-gray-600 focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-400/10"
                       />
@@ -613,22 +569,13 @@ function MonthlyBudget() {
                       </>
                     ) : (
                       <>
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
+                        <svg width="18" height="18" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="2.3"
+                          strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14" />
                           <path d="M5 12h14" />
                         </svg>
-                        {budgetData?.budgetSet
-                          ? 'Update budget'
-                          : 'Save budget'}
+                        {budgetData?.budgetSet ? 'Update budget' : 'Save budget'}
                       </>
                     )}
                   </button>
