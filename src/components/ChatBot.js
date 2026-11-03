@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { validateForm } from "../utils/formValidation";
 
 const ChatBot = () => {
   const [messages, setMessages] = useState([]);
@@ -18,7 +19,10 @@ const ChatBot = () => {
     e.preventDefault();
 
     const text = input.trim();
-    if (!text || loading) return;
+    inputRef.current?.setCustomValidity(
+      text ? "" : "Please enter a message."
+    );
+    if (!validateForm(e) || loading) return;
 
     let storedUser = {};
 
@@ -287,13 +291,19 @@ const ChatBot = () => {
         <footer className="border-t border-white/[0.07] bg-[#0d110e] px-4 py-4 sm:px-7">
           <form
             onSubmit={sendMessage}
+            noValidate
             className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-white/10 bg-[#141a15] p-2 transition focus-within:border-emerald-400/40 focus-within:ring-4 focus-within:ring-emerald-400/[0.05] sm:gap-3"
           >
             <textarea
               ref={inputRef}
               rows={1}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.currentTarget.setCustomValidity(
+                  e.target.value.trim() ? "" : "Please enter a message."
+                );
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -303,6 +313,7 @@ const ChatBot = () => {
               placeholder="Ask about budgeting, expenses, or savings..."
               disabled={loading}
               aria-label="Your message"
+              required
               className="max-h-32 min-h-11 flex-1 resize-y bg-transparent px-3 py-3 text-sm text-gray-100 outline-none placeholder:text-gray-600 disabled:opacity-60"
             />
 

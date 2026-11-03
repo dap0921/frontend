@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { validateForm } from "../utils/formValidation";
 
 const API_URL = `${api.defaults.baseURL}/api/shared`;
 const RAZORPAY_CHECKOUT_URL =
@@ -176,8 +177,14 @@ const SharedExpenses = () => {
   // CREATE GROUP
   const createGroup = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
 
-    if (!groupName.trim() || creating) return;
+    if (!groupName.trim()) {
+      setError("Please enter a group name.");
+      return;
+    }
+
+    if (creating) return;
 
     const config = getAuthConfig();
     if (!config) return;
@@ -211,6 +218,7 @@ const SharedExpenses = () => {
   // CREATE SHARED EXPENSE
   const createSharedExpense = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
 
     if (
       !expenseTitle.trim() ||
@@ -316,6 +324,7 @@ const SharedExpenses = () => {
   // ADD GROUP MEMBER
   const addMember = async (e, groupId) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
 
     const email = (memberEmails[groupId] || "")
       .trim()
@@ -851,7 +860,7 @@ const SharedExpenses = () => {
               </div>
             </div>
 
-            <form onSubmit={createGroup} className="space-y-5">
+            <form onSubmit={createGroup} noValidate className="space-y-5">
               <div>
                 <label htmlFor="groupName" className={labelClass}>
                   Group name <span className="text-emerald-400">*</span>
@@ -980,6 +989,7 @@ const SharedExpenses = () => {
 
                       <form
                         onSubmit={(e) => addMember(e, group._id)}
+                        noValidate
                         className="flex flex-col gap-2 sm:flex-row"
                       >
                         <input
@@ -1030,7 +1040,7 @@ const SharedExpenses = () => {
             </div>
           </div>
 
-          <form onSubmit={createSharedExpense} className="space-y-6">
+          <form onSubmit={createSharedExpense} noValidate className="space-y-6">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
                 <label htmlFor="expenseTitle" className={labelClass}>
@@ -1512,8 +1522,10 @@ const SharedExpenses = () => {
 
                         <form
                           className="flex flex-col gap-3 sm:flex-row"
+                          noValidate
                           onSubmit={(e) => {
                             e.preventDefault();
+                            if (!validateForm(e)) return;
                             settleExpense(expense);
                           }}
                         >

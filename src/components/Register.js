@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
+import { validateForm } from "../utils/formValidation";
 
 const initialFormData = {
   name: "",
@@ -174,6 +175,7 @@ function Register() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!validateForm(event)) return;
 
     const {
       name,
@@ -443,7 +445,7 @@ function Register() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {/* Name */}
               <div>
                 <FieldLabel htmlFor="name">Full name</FieldLabel>
@@ -460,6 +462,7 @@ function Register() {
                     onChange={handleChange}
                     placeholder="Enter your full name"
                     autoComplete="name"
+                    minLength={3}
                     maxLength={100}
                     disabled={loading || Boolean(success)}
                     required

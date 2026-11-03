@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api';
+import { validateForm } from '../utils/formValidation';
 
 function ResetPassword() {
   const { token } = useParams();
@@ -12,6 +13,7 @@ function ResetPassword() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!validateForm(event)) return;
     setError('');
 
     if (password.length < 6) {
@@ -73,7 +75,7 @@ function ResetPassword() {
             Back to sign in
           </Link>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
             <div>
               <label
                 htmlFor="new-password"

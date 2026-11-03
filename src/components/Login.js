@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
+import { validateForm } from '../utils/formValidation';
 
 function Login() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
     setError('');
     setNotice('');
 
@@ -78,6 +80,7 @@ function Login() {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
     setError('');
     setNotice('');
 
@@ -112,6 +115,7 @@ function Login() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
     setError('');
     setNotice('');
 
@@ -347,9 +351,10 @@ function Login() {
                   <input
                     id="email"
                     name="email"
-                    type="text"
+                    type="email"
                     inputMode="email"
                     autoComplete="email"
+                    required
                     value={email}
                     readOnly={resetCodeRequested}
                     onChange={(e) => {
@@ -378,6 +383,9 @@ function Login() {
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       maxLength={6}
+                      minLength={6}
+                      pattern="[0-9]{6}"
+                      required
                       value={resetCode}
                       onChange={(event) => {
                         setResetCode(event.target.value.replace(/\D/g, '').slice(0, 6));
@@ -401,6 +409,7 @@ function Login() {
                       type="password"
                       autoComplete="new-password"
                       minLength={6}
+                      required
                       value={newPassword}
                       onChange={(event) => {
                         setNewPassword(event.target.value);
@@ -424,6 +433,7 @@ function Login() {
                       type="password"
                       autoComplete="new-password"
                       minLength={6}
+                      required
                       value={confirmNewPassword}
                       onChange={(event) => {
                         setConfirmNewPassword(event.target.value);
@@ -465,6 +475,7 @@ function Login() {
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"
+                      required
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);

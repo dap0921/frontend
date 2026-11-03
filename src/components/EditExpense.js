@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
+import { validateForm } from "../utils/formValidation";
 
 const categories = [
   "Food",
@@ -279,6 +280,7 @@ function EditExpense() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!validateForm(event)) return;
 
     const user = getLoggedInUser();
 

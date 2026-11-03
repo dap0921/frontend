@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { validateForm } from '../utils/formValidation';
 
 function AddExpense() {
   const navigate = useNavigate();
@@ -108,6 +109,7 @@ function AddExpense() {
   // Save expense
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
     setError('');
 
     if (!formData.title.trim()) {
@@ -266,7 +268,7 @@ function AddExpense() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
             {/* LEFT COLUMN */}
             <div className="space-y-6 lg:col-span-2">

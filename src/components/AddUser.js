@@ -1,6 +1,7 @@
 ﻿import api from '../api';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { validateForm } from '../utils/formValidation';
 
 function AddUser() {
   const navigate = useNavigate();
@@ -62,6 +63,7 @@ function AddUser() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm(e)) return;
 
     const validationErrors = validate();
 
@@ -157,6 +159,9 @@ function AddUser() {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              required
+              minLength={3}
+              maxLength={100}
               className={inputClass('name')}
               placeholder="Enter full name"
             />
@@ -185,6 +190,8 @@ function AddUser() {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              required
+              maxLength={254}
               className={inputClass('email')}
               placeholder="you@example.com"
             />
@@ -213,6 +220,8 @@ function AddUser() {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              required
+              minLength={6}
               className={inputClass('password')}
               placeholder="Enter password"
             />
@@ -236,11 +245,15 @@ function AddUser() {
             </label>
 
             <input
-              type="text"
+              type="tel"
               id="add-phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              required
+              pattern="[0-9]{6,15}"
+              maxLength={15}
+              inputMode="numeric"
               className={inputClass('phone')}
               placeholder="Enter phone number"
             />
@@ -268,6 +281,8 @@ function AddUser() {
               name="address"
               value={formData.address}
               onChange={handleChange}
+              required
+              maxLength={500}
               rows="3"
               className={inputClass('address')}
               placeholder="Enter address"

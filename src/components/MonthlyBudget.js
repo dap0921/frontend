@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { validateForm } from '../utils/formValidation';
 
 function MonthlyBudget() {
   const navigate = useNavigate();
@@ -100,6 +101,7 @@ function MonthlyBudget() {
   // Save or update budget
   const handleSaveBudget = async (event) => {
     event.preventDefault();
+    if (!validateForm(event)) return;
 
     const amount = Number(budgetInput);
 
@@ -531,7 +533,7 @@ function MonthlyBudget() {
                 </div>
               </div>
 
-              <form onSubmit={handleSaveBudget}>
+              <form onSubmit={handleSaveBudget} noValidate>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                   <div className="w-full sm:max-w-md sm:flex-1">
                     <label htmlFor="budgetAmount"

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { validateForm } from "../utils/formValidation";
 
 function Profile() {
   const navigate = useNavigate();
@@ -163,6 +164,7 @@ function Profile() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!validateForm(event)) return;
 
     const user = getLoggedInUser();
 
@@ -806,7 +808,7 @@ function Profile() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
                     <p className="text-sm font-semibold text-gray-200">
                       Your account details
