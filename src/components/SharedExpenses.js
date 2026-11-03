@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -69,7 +69,8 @@ const SharedExpenses = () => {
     return (user.id || user._id)?.toString();
   };
 
-  const getAuthConfig = () => {
+  // FIX: Stable authentication function
+  const getAuthConfig = useCallback(() => {
     const token = getToken();
 
     if (!token) {
@@ -82,9 +83,10 @@ const SharedExpenses = () => {
         Authorization: `Bearer ${token}`,
       },
     };
-  };
+  }, [navigate]);
 
-  const loadGroups = async () => {
+  // FIX: Stable loadGroups function
+  const loadGroups = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -106,9 +108,10 @@ const SharedExpenses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthConfig]);
 
-  const loadExpenses = async () => {
+  // FIX: Stable loadExpenses function
+  const loadExpenses = useCallback(async () => {
     setExpensesLoading(true);
 
     const config = getAuthConfig();
@@ -129,13 +132,15 @@ const SharedExpenses = () => {
     } finally {
       setExpensesLoading(false);
     }
-  };
+  }, [getAuthConfig]);
 
+  // FIX: Correct React Hook dependencies
   useEffect(() => {
     loadGroups();
     loadExpenses();
-  }, []);
+  }, [loadGroups, loadExpenses]);
 
+  // CREATE GROUP
   const createGroup = async (e) => {
     e.preventDefault();
 
@@ -170,6 +175,7 @@ const SharedExpenses = () => {
     }
   };
 
+  // CREATE SHARED EXPENSE
   const createSharedExpense = async (e) => {
     e.preventDefault();
 
@@ -224,9 +230,11 @@ const SharedExpenses = () => {
     }
 
     const amountInPaise = Math.round(amount * 100);
+
     const baseShare = Math.floor(
       amountInPaise / group.members.length
     );
+
     const remainder = amountInPaise % group.members.length;
 
     const splits = group.members.map((member, index) => ({
@@ -272,6 +280,7 @@ const SharedExpenses = () => {
     }
   };
 
+  // ADD GROUP MEMBER
   const addMember = async (e, groupId) => {
     e.preventDefault();
 
@@ -291,6 +300,7 @@ const SharedExpenses = () => {
       ...prev,
       [groupId]: true,
     }));
+
     setError("");
 
     try {
@@ -319,6 +329,7 @@ const SharedExpenses = () => {
     }
   };
 
+  // SETTLE EXPENSE
   const settleExpense = async (expense) => {
     const expenseId = expense._id;
     const amount = Number(settlementAmounts[expenseId]);
@@ -442,6 +453,7 @@ const SharedExpenses = () => {
     }
   };
 
+  // FORMATTING HELPERS
   const formatMoney = (amount) =>
     Number(amount || 0).toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -488,6 +500,7 @@ const SharedExpenses = () => {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400 text-xl font-black text-[#07100b]">
               ₹
             </div>
+
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
                 Personal Finance
@@ -552,6 +565,7 @@ const SharedExpenses = () => {
               >
                 <span>+</span> Create a group
               </a>
+
               <a
                 href="#shared-expenses"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-gray-200 transition hover:bg-white/[0.08]"
@@ -571,12 +585,14 @@ const SharedExpenses = () => {
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-400/10 font-bold text-red-300">
               !
             </span>
+
             <div className="flex-1">
               <p className="font-semibold text-red-300">
                 Something went wrong
               </p>
               <p className="mt-1 text-sm text-red-200/80">{error}</p>
             </div>
+
             <button
               type="button"
               onClick={() => setError("")}
@@ -597,9 +613,11 @@ const SharedExpenses = () => {
                 👥
               </span>
             </div>
+
             <p className="mt-4 text-3xl font-bold text-white">
               {loading ? "—" : groups.length}
             </p>
+
             <p className="mt-2 text-xs text-gray-500">
               Groups you can access
             </p>
@@ -612,9 +630,11 @@ const SharedExpenses = () => {
                 🧑‍🤝‍🧑
               </span>
             </div>
+
             <p className="mt-4 text-3xl font-bold text-white">
               {loading ? "—" : memberCount}
             </p>
+
             <p className="mt-2 text-xs text-gray-500">
               Unique members across your groups
             </p>
@@ -627,11 +647,13 @@ const SharedExpenses = () => {
                 ₹
               </span>
             </div>
+
             <p className="mt-4 break-words text-2xl font-bold text-white sm:text-3xl">
               {expensesLoading
                 ? "—"
                 : `₹${formatMoney(totalSharedSpending)}`}
             </p>
+
             <p className="mt-2 text-xs text-gray-500">
               Across loaded shared expenses
             </p>
@@ -648,6 +670,7 @@ const SharedExpenses = () => {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-2xl">
                 👥
               </div>
+
               <div>
                 <h2 className="text-xl font-bold text-white">
                   Create a group
@@ -663,6 +686,7 @@ const SharedExpenses = () => {
                 <label htmlFor="groupName" className={labelClass}>
                   Group name <span className="text-emerald-400">*</span>
                 </label>
+
                 <input
                   id="groupName"
                   value={groupName}
@@ -681,6 +705,7 @@ const SharedExpenses = () => {
                     Optional
                   </span>
                 </label>
+
                 <textarea
                   id="groupDescription"
                   value={description}
@@ -762,6 +787,7 @@ const SharedExpenses = () => {
                         <h3 className="break-words font-bold text-white">
                           {group.name}
                         </h3>
+
                         <p className="mt-1 text-xs text-emerald-300">
                           {group.members?.length || 0}{" "}
                           {(group.members?.length || 0) === 1
@@ -781,6 +807,7 @@ const SharedExpenses = () => {
                       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Add a member
                       </p>
+
                       <form
                         onSubmit={(e) => addMember(e, group._id)}
                         className="flex flex-col gap-2 sm:flex-row"
@@ -1357,6 +1384,7 @@ const SharedExpenses = () => {
           )}
         </section>
 
+        {/* FOOTER */}
         <footer className="mt-8 border-t border-white/[0.06] py-6 text-center">
           <p className="text-xs text-gray-500">
             Better together. Share fairly. Settle easily.
