@@ -11,11 +11,14 @@ function Login() {
   const [role, setRole] = useState('user');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setNotice('');
 
     // JavaScript validation only
     const cleanEmail = email.trim();
@@ -67,6 +70,45 @@ function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+
+    const cleanEmail = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.post('/forgot-password', {
+        email: cleanEmail,
+        role,
+      });
+      setNotice(
+        'If an account matches that email and role, a password reset link will be sent shortly.'
+      );
+    } catch (err) {
+      console.error('Password reset request error:', err);
+      setError(
+        err.response?.data?.message ||
+          'Unable to request a password reset right now. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const returnToLogin = () => {
+    setForgotPassword(false);
+    setError('');
+    setNotice('');
   };
 
   const inputClass =
@@ -168,15 +210,26 @@ function Login() {
 
             <div className="mb-8">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
-                Welcome back
+                {forgotPassword ? 'Account recovery' : 'Welcome back'}
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Sign in to continue
+                {forgotPassword ? 'Forgot your password?' : 'Sign in to continue'}
               </h2>
               <p className="mt-3 text-sm leading-6 text-gray-400">
-                Enter your account details to access your personal dashboard.
+                {forgotPassword
+                  ? 'Enter your email and account type. If the account exists, we will email you a reset link.'
+                  : 'Enter your account details to access your personal dashboard.'}
               </p>
             </div>
+
+            {notice && (
+              <div
+                role="status"
+                className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-300"
+              >
+                {notice}
+              </div>
+            )}
 
             {error && (
               <div
@@ -190,7 +243,11 @@ function Login() {
               </div>
             )}
 
-            <form onSubmit={handleLogin} noValidate className="space-y-5">
+            <form
+              onSubmit={forgotPassword ? handleForgotPassword : handleLogin}
+              noValidate
+              className="space-y-5"
+            >
               {/* Email */}
               <div>
                 <label
@@ -232,56 +289,57 @@ function Login() {
                 </div>
               </div>
 
-              {/* Password */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-2 block text-sm font-medium text-gray-300"
-                >
-                  Password
-                </label>
-
-                <div className="relative">
-                  <svg
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
-                    width="19"
-                    height="19"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    aria-hidden="true"
+              {!forgotPassword && (
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-sm font-medium text-gray-300"
                   >
-                    <rect x="4" y="10" width="16" height="11" rx="2" />
-                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                  </svg>
+                    Password
+                  </label>
 
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (error) setError('');
-                    }}
-                    placeholder="Enter your password"
-                    className={`${inputClass} pr-14`}
-                  />
+                  <div className="relative">
+                    <svg
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      aria-hidden="true"
+                    >
+                      <rect x="4" y="10" width="16" height="11" rx="2" />
+                      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                    </svg>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 transition hover:text-emerald-400"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? 'HIDE' : 'SHOW'}
-                  </button>
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="Enter your password"
+                      className={`${inputClass} pr-14`}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 transition hover:text-emerald-400"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? 'HIDE' : 'SHOW'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Role selection */}
+              {/* Role selection applies to sign-in and password recovery. */}
               <div>
                 <p className="mb-3 text-sm font-medium text-gray-300">
                   Sign in as
@@ -301,7 +359,9 @@ function Login() {
                         onClick={() => {
                           setRole(item.value);
                           setError('');
+                          setNotice('');
                         }}
+                        disabled={loading}
                         aria-pressed={selected}
                         className={`flex h-14 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
                           selected
@@ -320,7 +380,6 @@ function Login() {
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
@@ -329,26 +388,50 @@ function Login() {
                 {loading ? (
                   <>
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#07110b]/30 border-t-[#07110b]" />
-                    Signing in...
+                    {forgotPassword ? 'Sending reset link...' : 'Signing in...'}
                   </>
                 ) : (
                   <>
-                    Sign in to your account
+                    {forgotPassword ? 'Send password reset link' : 'Sign in to your account'}
                     <span className="text-lg">→</span>
                   </>
                 )}
               </button>
             </form>
 
-            <p className="mt-7 text-center text-sm text-gray-500">
-              Don&apos;t have an account?{' '}
-              <Link
-                to="/register"
-                className="font-semibold text-emerald-400 transition hover:text-emerald-300"
+            {forgotPassword ? (
+              <button
+                type="button"
+                onClick={returnToLogin}
+                className="mt-7 w-full text-center text-sm font-semibold text-emerald-400 transition hover:text-emerald-300"
               >
-                Create account
-              </Link>
-            </p>
+                Back to sign in
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotPassword(true);
+                    setError('');
+                    setNotice('');
+                  }}
+                  className="mt-5 block w-full text-center text-sm font-medium text-emerald-400 transition hover:text-emerald-300"
+                >
+                  Forgot password?
+                </button>
+
+                <p className="mt-7 text-center text-sm text-gray-500">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    to="/register"
+                    className="font-semibold text-emerald-400 transition hover:text-emerald-300"
+                  >
+                    Create account
+                  </Link>
+                </p>
+              </>
+            )}
 
             <div className="mt-8 flex items-center justify-center gap-2 border-t border-white/10 pt-6 text-xs text-gray-600">
               <svg

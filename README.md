@@ -97,3 +97,29 @@ separately, and `vercel.json` ensures that refreshing React routes such as
 For local development, set `REACT_APP_API_URL=http://localhost:5000` in
 `.env.local`. Keep MongoDB Atlas credentials in the backend's server-side
 `MONGODB_URI` environment variable, never in the frontend.
+
+## Password reset
+
+The login page provides password reset for both user and admin accounts. The
+backend must implement these endpoints:
+
+- `POST /forgot-password` with `{ "email": "...", "role": "user" | "admin" }`.
+  Return a success response that does not reveal whether the account exists.
+  For a matching account, email a single-use reset link to
+  `<FRONTEND_URL>/reset-password/<token>`.
+- `POST /reset-password/:token` with `{ "password": "..." }`. Validate the
+  token, update the matching account's password, and invalidate the token.
+
+Generate a cryptographically random, expiring token; store only its hash, and
+apply rate limits to reset requests. Check the email and role server-side. The
+Brevo API key must only be configured on the backend, never in this frontend.
+In the Render backend service's **Environment** settings, add:
+
+- `BREVO_API_KEY`: the API key from Brevo
+- `BREVO_SENDER_EMAIL`: a sender address verified in Brevo
+- `BREVO_SENDER_NAME`: the name shown as the sender
+- `FRONTEND_URL`: the public frontend origin, without a trailing slash
+
+Save the variables and redeploy the backend. The backend's CORS allowlist must
+also include the frontend origin. Do not add these Brevo variables to the
+frontend's `REACT_APP_*` environment variables.

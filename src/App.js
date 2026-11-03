@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Login from './components/Login';
+import ResetPassword from './components/ResetPassword';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import AddExpense from './components/AddExpense';
@@ -73,6 +74,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       <Route path="/register" element={<Register />} />
 
