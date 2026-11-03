@@ -99,9 +99,7 @@ function Login() {
         role,
       });
       setResetCodeRequested(true);
-      setNotice(
-        'If an account matches that email and role, a verification code will be sent shortly.'
-      );
+      setNotice('A verification code has been sent to your registered email address.');
     } catch (err) {
       console.error('Password reset request error:', err);
       setError(
@@ -289,7 +287,7 @@ function Login() {
                 {forgotPassword
                   ? resetCodeRequested
                     ? 'Enter the 6-digit code from your email and choose a new password.'
-                    : 'Enter your email and account type. If the account exists, we will email you a verification code.'
+                    : 'Enter the email address registered to your account and select your account type.'
                   : 'Enter your account details to access your personal dashboard.'}
               </p>
             </div>
