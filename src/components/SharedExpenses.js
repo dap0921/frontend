@@ -2,10 +2,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 
-const API_URL = `${
-  process.env.REACT_APP_API_URL || "http://localhost:5000"
-}/api/shared`;
+const API_URL = `${api.defaults.baseURL}/api/shared`;
 const RAZORPAY_CHECKOUT_URL =
   "https://checkout.razorpay.com/v1/checkout.js";
 
