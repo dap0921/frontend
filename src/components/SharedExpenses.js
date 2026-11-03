@@ -614,6 +614,9 @@ const SharedExpenses = () => {
           type: "error",
           text:
             err.response?.data?.message ||
+            (err.response?.status === 404
+              ? "Online payments are not configured on this server yet. Use Record repayment for payments made outside the app."
+              : null) ||
             err.message ||
             "Could not start the Razorpay payment. Please try again.",
         },
