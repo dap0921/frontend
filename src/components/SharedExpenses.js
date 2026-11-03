@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost:5000/api/shared";
+const API_URL = `${process.env.REACT_APP_API_URL}/api/shared`;
 
 const CATEGORIES = [
   "Food",
@@ -25,6 +25,20 @@ const CATEGORY_ICONS = {
   Health: "💚",
   Entertainment: "🎬",
   Other: "✳️",
+};
+const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const getToken = () => getUser().token;
+
+const getUserId = () => {
+  const user = getUser();
+  return (user.id || user._id)?.toString();
 };
 
 const SharedExpenses = () => {
@@ -54,20 +68,7 @@ const SharedExpenses = () => {
   const [settlingExpense, setSettlingExpense] = useState({});
   const [settlementMessage, setSettlementMessage] = useState({});
 
-  const getUser = () => {
-    try {
-      return JSON.parse(localStorage.getItem("user") || "{}");
-    } catch {
-      return {};
-    }
-  };
-
-  const getToken = () => getUser().token;
-
-  const getUserId = () => {
-    const user = getUser();
-    return (user.id || user._id)?.toString();
-  };
+  
 
   // FIX: Stable authentication function
   const getAuthConfig = useCallback(() => {
