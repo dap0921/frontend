@@ -12,6 +12,10 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetCodeRequested, setResetCodeRequested] = useState(false);
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -91,8 +95,9 @@ function Login() {
         email: cleanEmail,
         role,
       });
+      setResetCodeRequested(true);
       setNotice(
-        'If an account matches that email and role, a password reset link will be sent shortly.'
+        'If an account matches that email and role, a verification code will be sent shortly.'
       );
     } catch (err) {
       console.error('Password reset request error:', err);
@@ -105,8 +110,67 @@ function Login() {
     }
   };
 
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+
+    if (!/^\d{6}$/.test(resetCode)) {
+      setError('Enter the 6-digit verification code from your email.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('Your password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.post('/reset-password', {
+        email: email.trim(),
+        role,
+        code: resetCode,
+        password: newPassword,
+      });
+      setForgotPassword(false);
+      setResetCodeRequested(false);
+      setResetCode('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPassword('');
+      setNotice('Password reset successfully. Sign in with your new password.');
+    } catch (err) {
+      console.error('Password reset error:', err);
+      setError(
+        err.response?.data?.message ||
+          'Unable to reset your password. Check the code and try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeResetEmail = () => {
+    setResetCodeRequested(false);
+    setResetCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setError('');
+    setNotice('');
+  };
+
   const returnToLogin = () => {
     setForgotPassword(false);
+    setResetCodeRequested(false);
+    setResetCode('');
+    setNewPassword('');
+    setConfirmNewPassword('');
     setError('');
     setNotice('');
   };
@@ -213,11 +277,15 @@ function Login() {
                 {forgotPassword ? 'Account recovery' : 'Welcome back'}
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                {forgotPassword ? 'Forgot your password?' : 'Sign in to continue'}
+                {forgotPassword
+                  ? resetCodeRequested ? 'Verify your code' : 'Forgot your password?'
+                  : 'Sign in to continue'}
               </h2>
               <p className="mt-3 text-sm leading-6 text-gray-400">
                 {forgotPassword
-                  ? 'Enter your email and account type. If the account exists, we will email you a reset link.'
+                  ? resetCodeRequested
+                    ? 'Enter the 6-digit code from your email and choose a new password.'
+                    : 'Enter your email and account type. If the account exists, we will email you a verification code.'
                   : 'Enter your account details to access your personal dashboard.'}
               </p>
             </div>
@@ -244,7 +312,11 @@ function Login() {
             )}
 
             <form
-              onSubmit={forgotPassword ? handleForgotPassword : handleLogin}
+              onSubmit={
+                forgotPassword
+                  ? resetCodeRequested ? handleResetPassword : handleForgotPassword
+                  : handleLogin
+              }
               noValidate
               className="space-y-5"
             >
@@ -279,15 +351,90 @@ function Login() {
                     inputMode="email"
                     autoComplete="email"
                     value={email}
+                    readOnly={resetCodeRequested}
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (error) setError('');
                     }}
                     placeholder="you@example.com"
-                    className={inputClass}
+                    className={`${inputClass} ${resetCodeRequested ? 'opacity-70' : ''}`}
                   />
                 </div>
               </div>
+
+              {forgotPassword && resetCodeRequested && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="reset-code"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
+                      6-digit verification code
+                    </label>
+                    <input
+                      id="reset-code"
+                      name="reset-code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={(event) => {
+                        setResetCode(event.target.value.replace(/\D/g, '').slice(0, 6));
+                        if (error) setError('');
+                      }}
+                      placeholder="Enter code"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="new-password"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
+                      New password
+                    </label>
+                    <input
+                      id="new-password"
+                      name="new-password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(event) => {
+                        setNewPassword(event.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="At least 6 characters"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirm-new-password"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
+                      Confirm new password
+                    </label>
+                    <input
+                      id="confirm-new-password"
+                      name="confirm-new-password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={6}
+                      value={confirmNewPassword}
+                      onChange={(event) => {
+                        setConfirmNewPassword(event.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="Re-enter new password"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
+              )}
 
               {!forgotPassword && (
                 <div>
@@ -342,7 +489,7 @@ function Login() {
               {/* Role selection applies to sign-in and password recovery. */}
               <div>
                 <p className="mb-3 text-sm font-medium text-gray-300">
-                  Sign in as
+                  {forgotPassword ? 'Account type' : 'Sign in as'}
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -361,7 +508,7 @@ function Login() {
                           setError('');
                           setNotice('');
                         }}
-                        disabled={loading}
+                        disabled={loading || resetCodeRequested}
                         aria-pressed={selected}
                         className={`flex h-14 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
                           selected
@@ -388,11 +535,15 @@ function Login() {
                 {loading ? (
                   <>
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#07110b]/30 border-t-[#07110b]" />
-                    {forgotPassword ? 'Sending reset link...' : 'Signing in...'}
+                    {forgotPassword
+                      ? resetCodeRequested ? 'Resetting password...' : 'Sending verification code...'
+                      : 'Signing in...'}
                   </>
                 ) : (
                   <>
-                    {forgotPassword ? 'Send password reset link' : 'Sign in to your account'}
+                    {forgotPassword
+                      ? resetCodeRequested ? 'Reset password' : 'Send verification code'
+                      : 'Sign in to your account'}
                     <span className="text-lg">→</span>
                   </>
                 )}
@@ -400,13 +551,24 @@ function Login() {
             </form>
 
             {forgotPassword ? (
-              <button
-                type="button"
-                onClick={returnToLogin}
-                className="mt-7 w-full text-center text-sm font-semibold text-emerald-400 transition hover:text-emerald-300"
-              >
-                Back to sign in
-              </button>
+              <div className="mt-7 flex flex-col gap-3 text-center">
+                {resetCodeRequested && (
+                  <button
+                    type="button"
+                    onClick={changeResetEmail}
+                    className="text-sm font-semibold text-emerald-400 transition hover:text-emerald-300"
+                  >
+                    Use a different email or account type
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={returnToLogin}
+                  className="text-sm font-semibold text-emerald-400 transition hover:text-emerald-300"
+                >
+                  Back to sign in
+                </button>
+              </div>
             ) : (
               <>
                 <button

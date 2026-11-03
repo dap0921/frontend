@@ -144,24 +144,25 @@ For local development, set `REACT_APP_API_URL=http://localhost:5000` in
 ## Password reset
 
 The login page provides password reset for both user and admin accounts. The
-backend must implement these endpoints:
+backend provides these endpoints:
 
 - `POST /forgot-password` with `{ "email": "...", "role": "user" | "admin" }`.
-  Return a success response that does not reveal whether the account exists.
-  For a matching account, email a single-use reset link to
-  `<FRONTEND_URL>/reset-password/<token>`.
-- `POST /reset-password/:token` with `{ "password": "..." }`. Validate the
-  token, update the matching account's password, and invalidate the token.
+  Return a generic response that does not reveal whether the account exists.
+  For a matching account, email a six-digit verification code that expires
+  after 10 minutes.
+- `POST /reset-password` with
+  `{ "email": "...", "role": "user" | "admin", "code": "123456", "password": "..." }`.
+  Validate the code, update the matching account's password, and invalidate
+  the code after at most five failed attempts.
 
-Generate a cryptographically random, expiring token; store only its hash, and
-apply rate limits to reset requests. Check the email and role server-side. The
-Brevo API key must only be configured on the backend, never in this frontend.
+Generate an unpredictable code, store only its bcrypt hash, and rate-limit
+reset requests. Check the email and role server-side. The Brevo API key must
+only be configured on the backend, never in this frontend.
 In the Render backend service's **Environment** settings, add:
 
 - `BREVO_API_KEY`: the API key from Brevo
 - `BREVO_SENDER_EMAIL`: a sender address verified in Brevo
 - `BREVO_SENDER_NAME`: the name shown as the sender
-- `FRONTEND_URL`: the public frontend origin, without a trailing slash
 
 Save the variables and redeploy the backend. The backend's CORS allowlist must
 also include the frontend origin. Do not add these Brevo variables to the
