@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -357,7 +357,6 @@ function EditExpense() {
 
   const user = getLoggedInUser();
   const userName = user?.name || "User";
-  const initials = userName.trim().charAt(0).toUpperCase() || "U";
 
   return (
     <div className="min-h-screen bg-[#080b09] text-white">

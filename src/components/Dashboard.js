@@ -1,4 +1,4 @@
-﻿
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -334,6 +334,8 @@ function Dashboard() {
         handleExpenseChange
       );
     };
+    // Load once, then refresh only in response to the registered expense events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ==========================================
@@ -463,13 +465,6 @@ function Dashboard() {
   const averageExpense = totalTransactions > 0
     ? totalExpenses / totalTransactions
     : 0;
-
-  // Keep summary synchronized with the displayed expense list.
-  // This prevents a stale summary API response from showing zero.
-  const currentSummary = {
-    totalAmount: totalExpenses,
-    totalTransactions,
-  };
 
   // ==========================================
   // MONTHLY SPENDING
