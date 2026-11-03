@@ -8,6 +8,6 @@ test('renders login page at /login', () => {
       <App />
     </MemoryRouter>
   );
-  const heading = screen.getByRole('heading', { name: /login/i });
+  const heading = screen.getByRole('heading', { name: /sign in to continue/i });
   expect(heading).toBeInTheDocument();
 });

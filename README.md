@@ -77,3 +77,23 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 # ExpenseTracker-frontend
+
+## Deploy with GitHub and Vercel
+
+1. Push this repository to GitHub.
+2. In Vercel, choose **Add New → Project** and import this GitHub repository.
+   Keep the Create React App build command (`npm run build`) and output
+   directory (`build`).
+3. If you use a different backend, set `REACT_APP_API_URL` in Vercel's
+   **Settings → Environment Variables** to its public HTTPS URL (without a
+   trailing slash), then redeploy. The checked-in `.env.production` is the
+   default for this deployment.
+4. Configure the backend's CORS allowlist to include your Vercel domain.
+
+This repository contains only the frontend. The backend must be deployed
+separately, and `vercel.json` ensures that refreshing React routes such as
+`/dashboard` serves the app. It does not host or proxy the backend API.
+
+For local development, set `REACT_APP_API_URL=http://localhost:5000` in
+`.env.local`. Keep MongoDB Atlas credentials in the backend's server-side
+`MONGODB_URI` environment variable, never in the frontend.
