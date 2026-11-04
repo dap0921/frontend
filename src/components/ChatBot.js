@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 import { validateForm } from "../utils/formValidation";
 
 const ChatBot = () => {
@@ -55,8 +55,8 @@ const ChatBot = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/chat",
+      const response = await api.post(
+        "https://backend-1vkv.onrender.com/api/chat",
         { messages: newMessages },
         {
           headers: {
